@@ -1,5 +1,6 @@
 # Compiled files
 *.class
+*.exe
 
 # Simulation report files
 *reports*/*.txt
@@ -15,3 +16,4 @@ doc/package-list
 .project
 /target/
 .settings/org.eclipse.*
+
