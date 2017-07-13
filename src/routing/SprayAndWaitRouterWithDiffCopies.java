@@ -1,12 +1,17 @@
 /*
 	修改自SprayAndWaitRouter.java
 	修改了读取的设置文件的命名空间名称
-	删除了在这里增加副本数的代码（85行）
+ 	删除了在这里增加副本数的代码（85行）
  */
 package routing;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Random;
 
 import core.Connection;
 import core.DTNHost;
@@ -20,22 +25,48 @@ import core.Settings;
  *
  */
 public class SprayAndWaitRouterWithDiffCopies extends ActiveRouter {
-	/** identifier for the initial number of copies setting ({@value})*/
-	public static final String NROF_COPIES = "nrofCopies";
-	/** identifier for the binary-mode setting ({@value})*/
-	public static final String BINARY_MODE = "binaryMode";
-	/** SprayAndWait router's settings name space ({@value})*/
+	/* Settings */
 	public static final String SPRAYANDWAITWITHDIFFCOPIES_NS = "SprayAndWaitRouterWithDiffCopies";
+	public static final String BUFFER = "buffer";
+	public static final String BINARY_MODE = "binaryMode";
+
+	public static final String SETTINGEVENTS_NAME = "Events";
+	public static final String SETTINGEVENTS_NROF = "nrof";
+	public static final String SETTINGEVENTS_PREFIX = "prefix";
+	public static final String SETTINGEVENTS_DELPRO = "DelPro";
+	public static final String NROF_COPIES = "initCopies";
+
 	/** Message property key */
 	public static final String MSG_COUNT_PROPERTY_LOCAL = SPRAYANDWAITWITHDIFFCOPIES_NS + "." + "copies";
 
+	
 	protected boolean isBinary;
+	protected boolean isMyBuffer;
+
+	protected Map<String, Integer> Pro;
+	protected Map<String, Integer> initCopies;
 
 	public SprayAndWaitRouterWithDiffCopies(Settings s) {
 		super(s);
 		Settings snwSettings = new Settings(SPRAYANDWAITWITHDIFFCOPIES_NS);
+		this.isBinary = snwSettings.getBoolean(BINARY_MODE);
+		this.isMyBuffer = snwSettings.getBoolean(BUFFER);
 
-		isBinary = snwSettings.getBoolean(BINARY_MODE);
+		/* 读入事件数据 */
+		Settings settings = new Settings(SETTINGEVENTS_NAME);
+		int Number = settings.getInt(SETTINGEVENTS_NROF);
+		this.Pro = new HashMap<String, Integer>();
+		this.initCopies = new HashMap<String,Integer>();
+
+		for (int i = 1; i <= Number; i++) {
+			Settings settings2 = new Settings(SETTINGEVENTS_NAME + i);
+			String name = settings2.getSetting(SETTINGEVENTS_PREFIX);
+			int DelPro = settings2.getInt(SETTINGEVENTS_DELPRO);
+			int Copies = settings2.getInt(NROF_COPIES);
+
+			this.Pro.put(name, DelPro);
+			this.initCopies.put(name,Copies);
+		}
 	}
 
 	/**
@@ -44,8 +75,10 @@ public class SprayAndWaitRouterWithDiffCopies extends ActiveRouter {
 	 */
 	protected SprayAndWaitRouterWithDiffCopies(SprayAndWaitRouterWithDiffCopies r) {
 		super(r);
-
 		this.isBinary = r.isBinary;
+		this.isMyBuffer = r.isMyBuffer;
+		this.Pro = r.Pro;
+		this.initCopies = r.initCopies;
 	}
 
 	@Override
@@ -79,13 +112,10 @@ public class SprayAndWaitRouterWithDiffCopies extends ActiveRouter {
 		makeRoomForNewMessage(msg.getSize());
 
 		msg.setTtl(this.msgTtl);
-		
-		
 
-		//msg.addProperty(MSG_COUNT_PROPERTY_LOCAL, new Integer(initialNrofCopies));
+		msg.addProperty(MSG_COUNT_PROPERTY_LOCAL, new Integer(initCopies.get(noNumber(msg.getId()))));
 		addToMessages(msg, true);
 
-		//System.out.println(msg.getId() + ": " + msg.getProperty(MSG_COUNT_PROPERTY_LOCAL));
 		return true;
 	}
 
@@ -165,5 +195,64 @@ public class SprayAndWaitRouterWithDiffCopies extends ActiveRouter {
 	@Override
 	public SprayAndWaitRouterWithDiffCopies replicate() {
 		return new SprayAndWaitRouterWithDiffCopies(this);
+	}
+
+	@Override
+	protected Message getNextMessageToRemove(boolean excludeMsgBeingSent) {
+		Collection<Message> messages = this.getMessageCollection();
+		if (this.isMyBuffer) {
+			List<Message> list = new ArrayList<Message>();
+			for (Message m : messages) {
+				if (excludeMsgBeingSent && isSending(m.getId())) {
+					continue; // skip the message(s) that router is sending
+				}
+				list.add(m);
+			}
+			return getDeleteWhich(list);
+		} else {
+			Message oldest = null;
+			for (Message m : messages) {
+				if (excludeMsgBeingSent && isSending(m.getId())) {
+					continue; // skip the message(s) that router is sending
+				}
+				if (oldest == null) {
+					oldest = m;
+				} else if (oldest.getReceiveTime() > m.getReceiveTime()) {
+					oldest = m;
+				}
+			}
+			return oldest;
+		}
+	}
+
+	String noNumber(String str) {
+		return str.replaceAll("\\d+", "");
+	}
+
+	protected Message getDeleteWhich(List<Message> list) {
+		List<Message> list2 = new ArrayList<Message>();
+		for (Message msg : list) {
+			for (int i = 0; i < Pro.get(noNumber(msg.getId())); i++) {
+				list2.add(msg);
+			}
+		}
+		if (list2.isEmpty())
+			return null;
+		else
+			return list2.get(rand(list2.size()));
+	}
+
+	protected int rand(int Max) {
+		int bit = 1;
+		int t = Max;
+		while (t > 0) {
+			t /= 10;
+			bit *= 10;
+		}
+		int ans = (int) (Math.random() * bit) % bit;
+		while (ans >= Max) {
+			ans = (int) (Math.random() * bit) % bit;
+		}
+		return ans;
 	}
 }

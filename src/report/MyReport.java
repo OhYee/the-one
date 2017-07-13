@@ -33,9 +33,10 @@ import core.Settings;
 	ResponseDelivered	:	成功投递的回复数量
 */
 
+
 public class MyReport extends Report implements MessageListener {
-	public static String SPACE = "\t\t\t";
-	public static String HEADER = "Time"+SPACE+"Type"+SPACE+"Success";
+	public static String SPACE = "\t";
+
 	public static final String SETTINGS_NAMESPACE = "Events";
 	public static final String NROF_SETTING = "nrof";
 	public static final String PREFIX_SETTING = "prefix";
@@ -44,7 +45,7 @@ public class MyReport extends Report implements MessageListener {
 	public int POS;
 
 	private Map<String, Double> creationTimes;
-	private List<Double> latencies;
+	//private List<Double> latencies;
 	private List<Integer> hopCounts;
 	private List<Double> msgBufferTime;
 	private List<Double> rtt; // round trip times
@@ -57,8 +58,11 @@ public class MyReport extends Report implements MessageListener {
 	int[] nrofDelivered; //成功数
 	int[] nrofResponseReqCreated;
 	int[] nrofResponseDelivered;
+	double[] latencies;
 
 	private int GroupNum;
+
+	private String[] ss;
 
 	/**
 	 * Constructor.
@@ -71,10 +75,8 @@ public class MyReport extends Report implements MessageListener {
 	public void init() {
 		super.init();
 
-		write(HEADER);
-
 		this.creationTimes = new HashMap<String, Double>();
-		this.latencies = new ArrayList<Double>();
+		//this.latencies = new ArrayList<Double>();
 		this.msgBufferTime = new ArrayList<Double>();
 		this.hopCounts = new ArrayList<Integer>();
 		this.rtt = new ArrayList<Double>();
@@ -97,8 +99,13 @@ public class MyReport extends Report implements MessageListener {
 		this.nrofDelivered = new int[GroupNum + 1];
 		this.nrofResponseReqCreated = new int[GroupNum + 1];
 		this.nrofResponseDelivered = new int[GroupNum + 1];
+		this.latencies = new double[GroupNum+1];
 
-		POS = 0;
+		this.ss = new String[3];
+		for(int i=0;i<3;i++)
+			ss[i] = "";
+
+		this.POS = 0;
 	}
 
 	/**
@@ -117,7 +124,7 @@ public class MyReport extends Report implements MessageListener {
 		if (m.getResponseSize() > 0) {
 			this.nrofResponseReqCreated[GroupMap.get(noNumber(m.getId()))]++;
 		}
-	};
+	}
 
 	/**
 	 * Method is called when a message's transfer is started
@@ -130,7 +137,7 @@ public class MyReport extends Report implements MessageListener {
 			return;
 		}
 		this.nrofStarted[GroupMap.get(noNumber(m.getId()))]++;
-	};
+	}
 
 	/**
 	 * Method is called when a message is deleted
@@ -140,7 +147,7 @@ public class MyReport extends Report implements MessageListener {
 	 */
 	public void messageDeleted(Message m, DTNHost where, boolean dropped) {
 
-	};
+	}
 
 	/**
 	 * Method is called when a message's transfer was aborted before
@@ -151,7 +158,7 @@ public class MyReport extends Report implements MessageListener {
 	 */
 	public void messageTransferAborted(Message m, DTNHost from, DTNHost to) {
 
-	};
+	}
 
 	/**
 	 * Method is called when a message is successfully transferred from
@@ -169,7 +176,7 @@ public class MyReport extends Report implements MessageListener {
 
 		this.nrofRelayed[GroupMap.get(noNumber(m.getId()))]++;
 		if (firstDelivery) {
-			this.latencies.add(getSimTime() - this.creationTimes.get(m.getId()));
+			this.latencies[GroupMap.get(noNumber(m.getId()))] += (getSimTime() - this.creationTimes.get(m.getId()));
 			this.nrofDelivered[GroupMap.get(noNumber(m.getId()))]++;
 			this.hopCounts.add(m.getHops().size() - 1);
 
@@ -179,39 +186,72 @@ public class MyReport extends Report implements MessageListener {
 			}
 		}
 
-		if(POS*TIME <= getSimTime()){
-			POS++;
+		if (this.POS * TIME <= getSimTime()) {
+			this.POS++;
 			NewLine(format(getSimTime()));
 		}
-	};
+	}
 
-	public void NewLine(String time){
+
+
+	public void NewLine(String time) {
 		int totCreated = 0;
+		int totStarted = 0;
 		int totDelivered = 0;
 		double totdeliveryProb = 0;
+		double totUseProb = 0;
+		double totTimeProb = 0;
+		double totTimeSum = 0;
+
+		this.ss[0] += time;
+		this.ss[1] += time;
+		this.ss[2] += time;
 
 		for (String name : GroupName) {
 			int pos = GroupMap.get(name);
 
 			int Created = nrofCreated[pos];
+			int Started = nrofStarted[pos];
 			int Delivered = nrofDelivered[pos];
 			double deliveryProb = 0;
+			double UseProb = 0;
+			double TimeProb = 0;
 
 			totCreated += Created;
+			totStarted += Started;
 			totDelivered += Delivered;
+			totTimeSum += latencies[pos];
 
 			if (Created > 0)
 				deliveryProb = (1.0 * Delivered) / Created;
-			
-			write(time + SPACE + name + SPACE + format(deliveryProb));
+			if (Created > 0)
+				UseProb = (1.0 * Started) / Created;
+			if (Delivered > 0)
+				TimeProb = latencies[pos] / Delivered;	
+
+			this.ss[0] += SPACE + format(deliveryProb);
+			this.ss[1] += SPACE + format(UseProb);
+			this.ss[2] += SPACE + format(TimeProb);
 		}
 
 		if (totCreated > 0)
-				totdeliveryProb = (1.0 * totDelivered) / totCreated;
+			totdeliveryProb = (1.0 * totDelivered) / totCreated;
+		if (totStarted > 0)
+			totUseProb = (1.0 * totStarted) / totCreated;
+		if (totDelivered > 0)
+			totTimeProb = totTimeSum / totDelivered;	
 
-		write(time+SPACE + "tot" + SPACE + format(totdeliveryProb));
+		this.ss[0] += SPACE + format(totdeliveryProb);
+		this.ss[0] += "\n";
+
+		this.ss[1] += SPACE + format(totUseProb);
+		this.ss[1] += "\n";
+
+		this.ss[2] += SPACE + format(totTimeProb);
+		this.ss[2] += "\n";
+
+
 	}
-
 
 	String noNumber(String str) {
 		return str.replaceAll("\\d+", "");
@@ -219,41 +259,70 @@ public class MyReport extends Report implements MessageListener {
 
 	@Override
 	public void done() {
+		for(int i=0;i<3;i++){
+			String s;
+			s = "Time";
+			for (String name : GroupName)
+				s += SPACE + name;
+			s += SPACE + "Tot";
+			write(s);
+			write(ss[i]);
+			write("\n");
+		}
+
 
 		write("\n\n\n");
 
-		write("Type"+SPACE+"Created"+SPACE+"Started"+SPACE+"Relayed"+SPACE+"Delivered"+SPACE+"deliveryProb");
-		
+		write("Type" + SPACE + "Created" + SPACE + "Started" + SPACE + "Relayed" + SPACE + "Delivered" + SPACE
+				+ "deliveryProb" + SPACE +"开销率" + SPACE + "平均延迟");
+
 		int totCreated = 0;
-		int totStarted	= 0;
+		int totStarted = 0;
 		int totRelayed = 0;
 		int totDelivered = 0;
 		double totdeliveryProb = 0;
+		double totUseProb = 0;
+		double totTimeProb = 0;
+		double totTimeSum = 0;
 
 		for (String name : GroupName) {
 			int pos = GroupMap.get(name);
 
 			int Created = nrofCreated[pos];
-			int Started	= nrofStarted[pos];
+			int Started = nrofStarted[pos];
 			int Relayed = nrofRelayed[pos];
 			int Delivered = nrofDelivered[pos];
 			double deliveryProb = 0;
+			double UseProb = 0;
+			double TimeProb = 0;
 
 			totCreated += Created;
 			totStarted += Started;
 			totRelayed += Relayed;
 			totDelivered += Delivered;
+			totTimeSum += latencies[pos];
 
 			if (Created > 0)
 				deliveryProb = (1.0 * Delivered) / Created;
-			
-			write(name+SPACE+Created+SPACE+ Started+SPACE + Relayed+SPACE+ Delivered+SPACE+ format(deliveryProb));
+			if (Created > 0)
+				UseProb = (1.0 * Started) / Created;
+			if (Delivered > 0)
+				TimeProb = latencies[pos] / Delivered;	
+
+
+			write(name + SPACE + Created + SPACE + Started + SPACE + Relayed + SPACE + Delivered + SPACE
+					+ format(deliveryProb) + SPACE + format(UseProb) + SPACE + format(TimeProb));
 		}
 
-
 		if (totCreated > 0)
-				totdeliveryProb = (1.0 * totDelivered) / totCreated;
-		write("Tol"+SPACE + totCreated+SPACE+ totStarted+SPACE + totRelayed+SPACE+ totDelivered+SPACE+ format(totdeliveryProb));
+			totdeliveryProb = (1.0 * totDelivered) / totCreated;
+		if (totStarted > 0)
+			totUseProb = (1.0 * totStarted) / totCreated;
+		if (totDelivered > 0)
+			totTimeProb = totTimeSum / totDelivered;	
+
+		write("Tol" + SPACE + totCreated + SPACE + totStarted + SPACE + totRelayed + SPACE + totDelivered + SPACE
+				+ format(totdeliveryProb) + SPACE + format(totUseProb) + SPACE + format(totTimeProb));
 		super.done();
 	}
 
