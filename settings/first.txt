@@ -15,7 +15,7 @@
 ####################################
 Scenario.name               =   First_Setting
 Scenario.updateInterval     =   100
-Scenario.endTime            =   86400
+Scenario.endTime            =   172800
 Interface.transmitRange     =   100
 MovementModel.worldSize     =   10000,10000
 ####################################
