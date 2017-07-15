@@ -13,7 +13,7 @@
 #####################################
 
 ####################################
-Scenario.name               =   First_Setting
+Scenario.name               =   First_500nobuffer_Setting
 Scenario.updateInterval     =   100
 Scenario.endTime            =   172800
 Interface.transmitRange     =   100
