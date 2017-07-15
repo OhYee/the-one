@@ -33,7 +33,6 @@ import core.Settings;
 	ResponseDelivered	:	成功投递的回复数量
 */
 
-
 public class MyReport extends Report implements MessageListener {
 	public static String SPACE = "\t";
 
@@ -99,10 +98,13 @@ public class MyReport extends Report implements MessageListener {
 		this.nrofDelivered = new int[GroupNum + 1];
 		this.nrofResponseReqCreated = new int[GroupNum + 1];
 		this.nrofResponseDelivered = new int[GroupNum + 1];
-		this.latencies = new double[GroupNum+1];
+		this.latencies = new double[GroupNum + 1];
+
+		for (int i = 0; i < GroupNum + 1; i++)
+			latencies[i] = 0;
 
 		this.ss = new String[3];
-		for(int i=0;i<3;i++)
+		for (int i = 0; i < 3; i++)
 			ss[i] = "";
 
 		this.POS = 0;
@@ -178,6 +180,7 @@ public class MyReport extends Report implements MessageListener {
 		if (firstDelivery) {
 			this.latencies[GroupMap.get(noNumber(m.getId()))] += (getSimTime() - this.creationTimes.get(m.getId()));
 			this.nrofDelivered[GroupMap.get(noNumber(m.getId()))]++;
+
 			this.hopCounts.add(m.getHops().size() - 1);
 
 			if (m.isResponse()) {
@@ -192,16 +195,14 @@ public class MyReport extends Report implements MessageListener {
 		}
 	}
 
-
-
 	public void NewLine(String time) {
 		int totCreated = 0;
 		int totStarted = 0;
 		int totDelivered = 0;
+		double totTimeSum = 0;
 		double totdeliveryProb = 0;
 		double totUseProb = 0;
 		double totTimeProb = 0;
-		double totTimeSum = 0;
 
 		this.ss[0] += time;
 		this.ss[1] += time;
@@ -213,23 +214,25 @@ public class MyReport extends Report implements MessageListener {
 			int Created = nrofCreated[pos];
 			int Started = nrofStarted[pos];
 			int Delivered = nrofDelivered[pos];
-			double deliveryProb = 0;
+			double TimeSum = latencies[pos];
+
+			double DeliveryProb = 0;
 			double UseProb = 0;
 			double TimeProb = 0;
 
 			totCreated += Created;
 			totStarted += Started;
 			totDelivered += Delivered;
-			totTimeSum += latencies[pos];
+			totTimeSum += TimeSum;
 
 			if (Created > 0)
-				deliveryProb = (1.0 * Delivered) / Created;
+				DeliveryProb = (1.0 * Delivered) / Created;
 			if (Created > 0)
 				UseProb = (1.0 * Started) / Created;
 			if (Delivered > 0)
-				TimeProb = latencies[pos] / Delivered;	
+				TimeProb = TimeSum / Delivered;
 
-			this.ss[0] += SPACE + format(deliveryProb);
+			this.ss[0] += SPACE + format(DeliveryProb);
 			this.ss[1] += SPACE + format(UseProb);
 			this.ss[2] += SPACE + format(TimeProb);
 		}
@@ -239,7 +242,7 @@ public class MyReport extends Report implements MessageListener {
 		if (totStarted > 0)
 			totUseProb = (1.0 * totStarted) / totCreated;
 		if (totDelivered > 0)
-			totTimeProb = totTimeSum / totDelivered;	
+			totTimeProb = totTimeSum / totDelivered;
 
 		this.ss[0] += SPACE + format(totdeliveryProb);
 		this.ss[0] += "\n";
@@ -250,7 +253,6 @@ public class MyReport extends Report implements MessageListener {
 		this.ss[2] += SPACE + format(totTimeProb);
 		this.ss[2] += "\n";
 
-
 	}
 
 	String noNumber(String str) {
@@ -259,7 +261,7 @@ public class MyReport extends Report implements MessageListener {
 
 	@Override
 	public void done() {
-		for(int i=0;i<3;i++){
+		for (int i = 0; i < 3; i++) {
 			String s;
 			s = "Time";
 			for (String name : GroupName)
@@ -270,11 +272,10 @@ public class MyReport extends Report implements MessageListener {
 			write("\n");
 		}
 
-
 		write("\n\n\n");
 
 		write("Type" + SPACE + "Created" + SPACE + "Started" + SPACE + "Relayed" + SPACE + "Delivered" + SPACE
-				+ "deliveryProb" + SPACE +"开销率" + SPACE + "平均延迟");
+				+ "deliveryProb" + SPACE + "开销率" + SPACE + "平均延迟");
 
 		int totCreated = 0;
 		int totStarted = 0;
@@ -307,8 +308,7 @@ public class MyReport extends Report implements MessageListener {
 			if (Created > 0)
 				UseProb = (1.0 * Started) / Created;
 			if (Delivered > 0)
-				TimeProb = latencies[pos] / Delivered;	
-
+				TimeProb = latencies[pos] / Delivered;
 
 			write(name + SPACE + Created + SPACE + Started + SPACE + Relayed + SPACE + Delivered + SPACE
 					+ format(deliveryProb) + SPACE + format(UseProb) + SPACE + format(TimeProb));
@@ -319,7 +319,7 @@ public class MyReport extends Report implements MessageListener {
 		if (totStarted > 0)
 			totUseProb = (1.0 * totStarted) / totCreated;
 		if (totDelivered > 0)
-			totTimeProb = totTimeSum / totDelivered;	
+			totTimeProb = totTimeSum / totDelivered;
 
 		write("Tol" + SPACE + totCreated + SPACE + totStarted + SPACE + totRelayed + SPACE + totDelivered + SPACE
 				+ format(totdeliveryProb) + SPACE + format(totUseProb) + SPACE + format(totTimeProb));
