@@ -20,7 +20,7 @@ Interface.transmitRange     =   100
 MovementModel.worldSize     =   10000,10000
 ####################################
 
-SprayAndWaitRouterWithDiffCopies.buffer = true
+SprayAndWaitRouterWithDiffCopies.buffer = false
 Events1.DelPro = 2
 Events2.DelPro = 4
 Events3.DelPro = 8
