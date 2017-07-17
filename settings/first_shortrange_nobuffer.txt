@@ -1,0 +1,236 @@
+﻿#####################################
+#  共有三种形式的结点，High(3个) Middle(30个) Low(100个)
+#  每种可以发出三种不同优先级的信号 H M L
+#  
+#  结点数目为 5 75 900
+#  时间间隔为 480~600min 300~360min 120min~240min
+#　也即事件生成频率应该为
+#               H                  M                 L
+#  High     (3600,4320)     (2160,2880)     (720,1440)
+#  Middle   (240,288)       (144,192)       (48,96)
+#  Low      (20,24)         (12,16)         (4,8)
+#
+#####################################
+
+####################################
+Scenario.name               =   shortrange_nobuffer
+Scenario.updateInterval     =   100
+Scenario.endTime            =   172800
+Interface.transmitRange     =   50
+MovementModel.worldSize     =   10000,10000
+####################################
+
+SprayAndWaitRouterWithDiffCopies.buffer = false
+Events1.DelPro = 2
+Events2.DelPro = 4
+Events3.DelPro = 8
+Events4.DelPro = 3
+Events5.DelPro = 6
+Events6.DelPro = 12
+Events7.DelPro = 4
+Events8.DelPro = 8
+Events9.DelPro = 16
+
+Group1.nrofHosts=5
+Events1.hosts=0,5
+Events1.interval=3600,4320
+Events1.tohosts=0,980
+Events2.hosts=0,5
+Events2.interval=2160,2880
+Events2.tohosts=0,980
+Events3.hosts=0,5
+Events3.interval=720,1440
+Events3.tohosts=0,980
+Group2.nrofHosts=75
+Events4.hosts=5,75
+Events4.interval=240,288
+Events4.tohosts=0,980
+Events5.hosts=5,75
+Events5.interval=144,192
+Events5.tohosts=0,980
+Events6.hosts=5,75
+Events6.interval=48,96
+Events6.tohosts=0,980
+Group3.nrofHosts=900
+Events7.hosts=75,900
+Events7.interval=20,24
+Events7.tohosts=0,980
+Events8.hosts=75,900
+Events8.interval=12,16
+Events8.tohosts=0,980
+Events9.hosts=75,900
+Events9.interval=4,8
+Events9.tohosts=0,980
+
+############# 模拟总设置 #############
+# 是否模拟连接
+Scenario.simulateConnections = true
+# 组数
+Scenario.nrofHostGroups      = 3
+
+############# 传输接口设置 #############
+# 数据传输接口类型
+Interface.type          = SimpleBroadcastInterface
+# 传输速度
+Interface.transmitSpeed = 500k
+
+############# 结点设置 #############
+## Group 默认值 ##
+# 移动方式：随机路点模型
+Group.movementModel  = RandomWaypoint
+# 路由协议类型
+Group.router         = SprayAndWaitRouterWithDiffCopies
+ # 缓存大小
+Group.bufferSize     = 50M
+ # 传输间隔（不间断传输）
+Group.waitTime       = 0, 0
+# 接口类型数
+Group.nrofInterfaces = 1
+# 接口类型
+Group.interface1     = Interface
+# 移动速度
+Group.speed          = 1, 2
+# 失效时间 0.5 Hours
+Group.msgTtl         = 1800
+
+## 组1-中优先级组 ##
+# 类型名称
+Group1.groupID        = High
+
+## 组2-中优先级组 ##
+# 类型名称
+Group2.groupID        = Middle
+
+## 组3-低优先级组 ##
+# 类型名称
+Group3.groupID        = Low
+
+
+
+
+############# 信息设置 #############
+## 默认值 ##
+# 信息种类数
+Events.nrof = 9
+
+## HighH ##
+# 事件前缀ID
+Events1.prefix = HighH
+# 副本数
+Events1.initCopies = 256
+# 事件生成模型
+Events1.class = MessageEventGenerator
+# 事件大小
+Events1.size = 50k,2M
+
+## HighM ##
+# 事件前缀ID
+Events2.prefix = HighM     
+# 副本数
+Events2.initCopies = 128
+# 事件生成模型
+Events2.class = MessageEventGenerator
+# 事件大小
+Events2.size = 50k,2M
+
+## HighL ##
+# 事件前缀ID
+Events3.prefix = HighL     
+# 副本数
+Events3.initCopies = 64
+# 事件生成模型
+Events3.class = MessageEventGenerator
+# 事件大小
+Events3.size = 50k,2M
+
+## MiddleH ##
+# 事件前缀ID
+Events4.prefix = MiddleH
+# 副本数
+Events4.initCopies = 64
+# 事件生成模型
+Events4.class = MessageEventGenerator
+# 事件大小
+Events4.size = 50k,2M
+
+## MiddleM ##
+# 事件前缀ID
+Events5.prefix = MiddleM      
+# 副本数
+Events5.initCopies = 32
+# 事件生成模型
+Events5.class = MessageEventGenerator
+# 事件大小
+Events5.size = 50k,2M
+
+## MiddleL ##
+# 事件前缀ID
+Events6.prefix = MiddleL
+# 副本数
+Events6.initCopies = 16
+# 事件生成模型
+Events6.class = MessageEventGenerator
+# 事件大小
+Events6.size = 50k,2M
+
+## LowH ##
+# 事件前缀ID
+Events7.prefix = LowH      
+# 副本数
+Events7.initCopies = 16
+# 事件生成模型
+Events7.class = MessageEventGenerator
+# 事件大小
+Events7.size = 50k,2M
+
+## LowHM ##
+# 事件前缀ID
+Events8.prefix = LowM      
+# 副本数
+Events8.initCopies = 8
+# 事件生成模型
+Events8.class = MessageEventGenerator
+# 事件大小
+Events8.size = 50k,2M
+
+## LowL ##
+# 事件前缀ID
+Events9.prefix = LowL              
+# 副本数
+Events9.initCopies = 4
+# 事件生成模型
+Events9.class = MessageEventGenerator
+# 事件大小
+Events9.size = 50k,2M
+
+############# 地图/移动设置 #############
+# 伪随机数种子
+MovementModel.rngSeed = 1
+# 预先模拟时间
+MovementModel.warmup = 1000
+
+
+############# 报告 #############
+# 报告种类数
+Report.nrofReports = 1
+# 报告预热时间
+Report.warmup = 0
+# 报告生成目录
+Report.reportDir = reports/
+# 报告生成模型
+Report.report1 = MyReport
+Report.report2 = ContactTimesReport
+Report.report3 = DeliveredMessagesReport
+Report.report4 = MessageStatsReport
+
+############# 路由协议设置 #############
+# 是否为二分散发等待模型
+SprayAndWaitRouterWithDiffCopies.binaryMode = true
+
+############# 优化设置 #############
+Optimization.cellSizeMult = 5
+Optimization.randomizeUpdateOrder = true
+
+############# GUI设置 #############
+# 要显示在log的结点数
+GUI.EventLogPanel.nrofEvents = 100
